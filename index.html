@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>DuoDebt - 雙人記帳</title>
 
-    <!-- PWA and Mobile App Settings (Corrected Paths) -->
+    <!-- PWA and Mobile App Settings -->
     <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#10b981">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -40,7 +40,7 @@
         }
       }
     }
-  </script>
+    </script>
     <style>
       /* Hide scrollbar for Chrome, Safari and Opera */
       .no-scrollbar::-webkit-scrollbar {
@@ -56,23 +56,49 @@
         -webkit-tap-highlight-color: transparent;
       }
     </style>
-  <script type="importmap">
+
+    <!-- Polyfill for process.env (Prevents crash on GitHub Pages) -->
+    <script>
+      window.process = {
+        env: {
+          // 如果您有 Gemini API Key，請填入下方引號中，例如: "AIzaSy..."
+          API_KEY: "" 
+        }
+      };
+    </script>
+
+    <!-- Babel for compiling TSX in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Import Map: Maps library names and local files to their correct paths -->
+    <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+    "@google/genai": "https://esm.sh/@google/genai",
+    "./App": "./App.tsx",
+    "./types": "./types.ts",
+    "./services/storageService": "./services/storageService.ts",
+    "./services/geminiService": "./services/geminiService.ts",
+    "./components/BalanceCard": "./components/BalanceCard.tsx",
+    "./components/TransactionList": "./components/TransactionList.tsx",
+    "./components/SmartEntry": "./components/SmartEntry.tsx",
+    "./components/ManualAddModal": "./components/ManualAddModal.tsx",
+    "./components/DeleteConfirmModal": "./components/DeleteConfirmModal.tsx",
+    "./components/SettleConfirmModal": "./components/SettleConfirmModal.tsx",
+    "./components/ClearSettledSelectionModal": "./components/ClearSettledSelectionModal.tsx",
+    "./components/LoadingOverlay": "./components/LoadingOverlay.tsx",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0"
+    "react/": "https://aistudiocdn.com/react@^19.2.1/"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-    <!-- Added Script to load your React app -->
-    <script type="module" src="./index.tsx"></script>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <!-- Load the main app with Babel -->
+    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+  </body>
 </html>
