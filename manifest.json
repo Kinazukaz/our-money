@@ -1,0 +1,20 @@
+{
+  "short_name": "家庭記帳",
+  "name": "家庭記帳 (筠 & 古)",
+  "icons": [
+    {
+      "src": "./icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#10b981",
+  "background_color": "#f8fafc"
+}
