@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭記帳 (筠 & 古)</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Noto Sans TC 字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8; /* 淺灰色背景 */
+        }
+        .card-dark {
+            background-color: #374151; /* 深灰色卡片 */
+            color: #e5e7eb;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .btn-primary {
+            background-color: #0d9488; /* 綠色主按鈕 */
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #0f766e;
+        }
+        .btn-secondary {
+            background-color: #8b5cf6; /* 紫色輔助按鈕 */
+            transition: background-color 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #7c3aed;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        .text-yun { color: #3b82f6; }
+        .text-gu { color: #f97316; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 主應用程式容器 -->
+    <div id="app" class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
+        <!-- 頂部標題 -->
+        <header class="flex justify-between items-center py-4">
+            <h1 class="text-2xl font-bold text-gray-800">家庭記帳 (筠 & 古)</h1>
+            <button onclick="toggleInfoModal()" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- 狀態卡片 -->
+        <div id="status-card" class="card-dark p-6 rounded-xl mb-6 flex-shrink-0">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium opacity-75">目前狀態</p>
+                    <div class="flex items-end mt-1">
+                        <span id="current-balance" class="text-4xl font-extrabold">$0</span>
+                        <span class="text-lg font-medium ml-1 mb-1 opacity-75">TWD</span>
+                    </div>
+                    <p id="settlement-info" class="text-sm mt-3 font-medium flex items-center">
+                        <!-- 結清狀態會在這裡更新 -->
+                    </p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+            </div>
+            <!-- 結算按鈕 -->
+            <button id="settle-btn" onclick="openSettleModal()" class="w-full mt-4 py-2 px-4 rounded-lg text-sm font-semibold bg-gray-500/20 hover:bg-gray-500/40 transition duration-150">
+                結清所有帳目
+            </button>
+        </div>
+        
+        <!-- 近期記錄列表 -->
+        <div class="flex justify-between items-center mb-3 flex-shrink-0">
+            <h2 class="text-lg font-semibold text-gray-800">近期記錄</h2>
+            <span id="record-count" class="text-sm text-gray-500">0 筆</span>
+        </div>
+
+        <!-- 記錄容器 -->
+        <div id="records-container" class="space-y-3 flex-grow overflow-y-auto pb-24">
+            <!-- 記錄將由 JS 載入 -->
+            <div id="no-records-placeholder" class="text-center p-12 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h.01M7 12h10l-1 9H8l-1-9zm5-9H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2h-3" />
+                </svg>
+                <p>目前沒有記錄</p>
+            </div>
+        </div>
+
+        <!-- 底部操作區塊 (固定在底部) -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 max-w-md mx-auto flex justify-between space-x-2 rounded-t-xl shadow-2xl">
+            <button onclick="openDeleteModal()" class="w-1/3 py-3 rounded-xl bg-gray-200 text-gray-600 font-semibold flex items-center justify-center hover:bg-gray-300 transition duration-150">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+            <button class="w-1/3 py-3 rounded-xl btn-secondary text-white font-semibold flex items-center justify-center shadow-lg shadow-purple-300/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                語音輸入 (模擬)
+            </button>
+            <button onclick="openAddModal()" class="w-1/3 py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center shadow-lg shadow-teal-400/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                </svg>
+                手動記帳
+            </button>
+        </div>
+    </div>
+
+    <!-- 模態框：新增記錄 (Add Record Modal) -->
+    <div id="add-modal" class="fixed inset-0 z-50 flex items-end justify-center hidden modal-overlay transition-opacity duration-300">
+        <div class="bg-white rounded-t-2xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">新增記錄</h2>
+                    <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="add-record-form" onsubmit="handleNewRecord(event)">
+                    <!-- 誰付錢切換 -->
+                    <label class="block text-sm font-medium text-gray-700 mb-2">誰付錢</label>
+                    <div class="flex mb-5 p-1 bg-gray-100 rounded-xl">
+                        <button type="button" id="payer-yun" data-payer="yun" onclick="selectPayer('yun')" class="flex-1 py-2 rounded-xl text-center font-semibold bg-white text-gray-800 shadow-md">筠付 (我)</button>
+                        <button type="button" id="payer-gu" data-payer="gu" onclick="selectPayer('gu')" class="flex-1 py-2 rounded-xl text-center font-semibold text-gray-500">古付</button>
+                    </div>
+
+                    <!-- 項目 -->
+                    <div class="mb-4 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="item" placeholder="項目 (例如：餐費、家用費)" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+
+                    <!-- 金額 -->
+                    <div class="mb-4 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 font-bold">$</span>
+                        </div>
+                        <input type="number" id="amount" placeholder="金額" required min="0.01" step="0.01" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+
+                    <!-- 日期 -->
+                    <div class="mb-6 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h.01M7 12h10l-1 9H8l-1-9zm5-9H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2h-3" />
+                            </svg>
+                        </div>
+                        <input type="date" id="date" required value="" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+
+                    <!-- 提交按鈕 -->
+                    <button type="submit" id="add-record-submit-btn" class="w-full py-3 rounded-xl btn-primary text-white font-semibold">新增記錄</button>
+                    <div id="add-error-message" class="text-red-500 text-center mt-2 hidden"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模態框：清除已結算項目 (Delete Modal) -->
+    <div id="delete-modal" class="fixed inset-0 z-50 flex items-end justify-center hidden modal-overlay transition-opacity duration-300">
+        <div class="bg-white rounded-t-2xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">清除已結算項目</h2>
+                    <button onclick="closeDeleteModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- 篩選後的記錄列表 -->
+                <div id="delete-records-list" class="max-h-80 overflow-y-auto space-y-3 mb-4">
+                    <p id="no-settled-records" class="text-center text-gray-500 p-8">目前沒有已結清的記錄。</p>
+                </div>
+
+                <div class="flex items-center justify-between mb-4">
+                    <label class="flex items-center text-gray-700 font-semibold">
+                        <input type="checkbox" id="select-all-delete" onchange="toggleSelectAll(this.checked)" class="form-checkbox h-5 w-5 text-teal-600 rounded">
+                        <span class="ml-2 text-base">全選</span>
+                    </label>
+                    <span id="delete-selected-count" class="text-gray-500">已選 0 筆</span>
+                </div>
+
+                <button onclick="handleDeleteSelected()" id="delete-selected-btn" class="w-full py-3 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition duration-150 shadow-lg shadow-red-300/50" disabled>
+                    清除選取項目 (0)
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 模態框：結清所有帳目 (Settle Modal) -->
+    <div id="settle-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay transition-opacity duration-300">
+        <div class="bg-white rounded-xl w-11/12 max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">結清所有帳目</h2>
+                <button onclick="closeSettleModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <p id="settle-message" class="text-gray-600 mb-6"></p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeSettleModal()" class="py-2 px-4 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition duration-150">取消</button>
+                <button onclick="handleSettleAll()" id="settle-all-confirm-btn" class="py-2 px-4 rounded-lg btn-primary text-white font-semibold hover:bg-teal-600 transition duration-150">確認結清</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 模態框：資訊 (Info Modal) -->
+    <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay transition-opacity duration-300">
+        <div class="bg-white rounded-xl w-11/12 max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">應用程式資訊</h2>
+                <button onclick="toggleInfoModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <p class="text-gray-700 mb-3">此應用程式示範了家庭記帳，主要用於計算 **筠** 與 **古** 之間的淨結餘。</p>
+            <div class="space-y-2 text-sm">
+                <p><strong>- 筠 (Yun):</strong> 當前登入用戶 (您的 ID)</p>
+                <p id="yun-id-display" class="break-all text-xs text-gray-500"></p>
+                <p><strong>- 古 (Gu):</strong> 夥伴用戶 (固定 ID)</p>
+                <p id="gu-id-display" class="break-all text-xs text-gray-500"></p>
+            </div>
+            <p class="text-xs mt-4 text-red-500">數據儲存在 Firestore 公共集合中：<br>/artifacts/{appId}/public/data/family_bills</p>
+        </div>
+    </div>
+
+    <!-- Firebase 腳本 -->
+    <script type="module">
+        // 匯入 Firebase 模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, writeBatch, Timestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 設定 Firebase 變數
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-family-accounting-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // 應用程式狀態 (全域變數)
+        let app, db, auth;
+        let userId = null;
+        const PARTNER_ID = 'partner_gu_fixed_id'; // 夥伴的固定 ID
+        const YUN_NAME = '筠';
+        const GU_NAME = '古';
+
+        // 初始化 Firebase
+        async function initFirebase() {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase 配置缺失。請檢查 __firebase_config。");
+                document.getElementById('add-error-message').innerText = '應用程式初始化失敗：Firebase 配置錯誤。';
+                document.getElementById('add-error-message').classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // 啟用詳細日誌以進行除錯
+                setLogLevel('Debug');
+                
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // 處理身份驗證
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("用戶已登入:", userId);
+                        // 更新資訊模態框的 ID 顯示
+                        document.getElementById('yun-id-display').innerText = userId;
+                        document.getElementById('gu-id-display').innerText = PARTNER_ID;
+                        
+                        // 初始化數據監聽
+                        listenForRecords();
+                    } else {
+                        console.log("沒有用戶登入，正在嘗試登入...");
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Firebase 登入失敗:", error);
+                            // 顯示錯誤訊息
+                            document.getElementById('add-error-message').innerText = `登入失敗: ${error.message}`;
+                            document.getElementById('add-error-message').classList.remove('hidden');
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase 初始化失敗:", error);
+            }
+        }
+
+        // 設置日期的預設值為今天
+        document.getElementById('date').valueAsDate = new Date();
+
+        // --- 核心 Firestore 操作 ---
+
+        function getCollectionRef() {
+            // 使用公共路徑：/artifacts/{appId}/public/data/family_bills
+            return collection(db, 'artifacts', appId, 'public', 'data', 'family_bills');
+        }
+
+        let allRecords = []; // 儲存所有記錄
+
+        // 監聽記錄的即時變化
+        function listenForRecords() {
+            if (!db) return;
+            const recordsQuery = query(getCollectionRef());
+
+            onSnapshot(recordsQuery, (snapshot) => {
+                allRecords = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                console.log("數據已更新:", allRecords.length, "筆記錄");
+                updateUI();
+            }, (error) => {
+                console.error("監聽記錄失敗:", error);
+                document.getElementById('add-error-message').innerText = `載入數據失敗: ${error.message}`;
+                document.getElementById('add-error-message').classList.remove('hidden');
+            });
+        }
+
+        // 處理新增記錄
+        window.handleNewRecord = async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const submitBtn = document.getElementById('add-record-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = '新增中...';
+            document.getElementById('add-error-message').classList.add('hidden');
+
+            if (!userId) {
+                document.getElementById('add-error-message').innerText = '錯誤：用戶未登入。請稍候。';
+                document.getElementById('add-error-message').classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerText = '新增記錄';
+                return;
+            }
+
+            try {
+                const item = form.item.value;
+                const amount = parseFloat(form.amount.value);
+                const dateString = form.date.value;
+                const payer = document.querySelector('.flex-1.bg-white').getAttribute('data-payer');
+
+                if (isNaN(amount) || amount <= 0) throw new Error("金額必須為正數。");
+
+                // 確定付款人和欠款人 ID
+                let payerId, debtorId, payerName, debtorName;
+                if (payer === 'yun') {
+                    payerId = userId;
+                    debtorId = PARTNER_ID;
+                    payerName = YUN_NAME;
+                    debtorName = GU_NAME;
+                } else { // 'gu'
+                    payerId = PARTNER_ID;
+                    debtorId = userId;
+                    payerName = GU_NAME;
+                    debtorName = YUN_NAME;
+                }
+
+                // 淨結餘是總金額的一半
+                const splitAmount = amount / 2;
+
+                const newRecord = {
+                    item: item,
+                    amount: amount,
+                    date: dateString,
+                    payerId: payerId,
+                    debtorId: debtorId,
+                    payerName: payerName,
+                    debtorName: debtorName,
+                    splitAmount: splitAmount,
+                    isSettled: false,
+                    createdAt: Timestamp.now()
+                };
+
+                await addDoc(getCollectionRef(), newRecord);
+
+                console.log("記錄新增成功:", newRecord);
+                closeAddModal();
+                form.reset();
+                document.getElementById('date').valueAsDate = new Date(); // 重設日期
+                selectPayer('yun'); // 預設選擇 '筠付 (我)'
+
+            } catch (e) {
+                console.error("新增記錄失敗:", e);
+                document.getElementById('add-error-message').innerText = `新增失敗: ${e.message}`;
+                document.getElementById('add-error-message').classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = '新增記錄';
+            }
+        };
+
+        // 處理結清所有帳目
+        window.handleSettleAll = async () => {
+            if (!db) return;
+            const settleBtn = document.getElementById('settle-all-confirm-btn');
+            settleBtn.disabled = true;
+            settleBtn.innerText = '結清中...';
+
+            try {
+                // 找出所有未結清的記錄
+                const unsettledRecords = allRecords.filter(r => !r.isSettled);
+
+                if (unsettledRecords.length === 0) {
+                    closeSettleModal();
+                    return;
+                }
+
+                const batch = writeBatch(db);
+
+                unsettledRecords.forEach(record => {
+                    const recordRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_bills', record.id);
+                    batch.update(recordRef, { isSettled: true, settledAt: Timestamp.now() });
+                });
+
+                await batch.commit();
+                console.log("所有帳目已成功結清。");
+                closeSettleModal();
+
+            } catch (error) {
+                console.error("結清帳目失敗:", error);
+                alert(`結清失敗: ${error.message}`);
+            } finally {
+                settleBtn.disabled = false;
+                settleBtn.innerText = '確認結清';
+            }
+        };
+
+        // 處理刪除選取的已結清記錄
+        window.handleDeleteSelected = async () => {
+            if (!db) return;
+            const deleteBtn = document.getElementById('delete-selected-btn');
+            deleteBtn.disabled = true;
+            deleteBtn.innerText = '清除中...';
+
+            try {
+                const checkedBoxes = document.querySelectorAll('#delete-records-list input[type="checkbox"]:checked');
+                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+                if (selectedIds.length === 0) {
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerText = `清除選取項目 (0)`;
+                    return;
+                }
+
+                const batch = writeBatch(db);
+
+                selectedIds.forEach(id => {
+                    const recordRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_bills', id);
+                    batch.delete(recordRef);
+                });
+
+                await batch.commit();
+                console.log(`已成功清除 ${selectedIds.length} 筆記錄。`);
+                // UI 會通過 onSnapshot 自動更新
+                closeDeleteModal();
+
+            } catch (error) {
+                console.error("清除記錄失敗:", error);
+                alert(`清除失敗: ${error.message}`);
+            }
+        };
+
+
+        // --- UI 更新邏輯 ---
+
+        function updateUI() {
+            if (!userId) return;
+
+            const unsettledRecords = allRecords.filter(r => !r.isSettled);
+
+            // 1. 計算淨結餘 (Balance)
+            let netBalance = 0; // 正數: 筠 (當前用戶) 應收; 負數: 筠 應付
+            
+            unsettledRecords.forEach(record => {
+                if (record.payerId === userId) {
+                    // 筠 付款，古 欠筠 (筠應收)
+                    netBalance += record.splitAmount;
+                } else if (record.debtorId === userId) {
+                    // 古 付款，筠 欠古 (筠應付)
+                    netBalance -= record.splitAmount;
+                }
+            });
+
+            // 2. 更新狀態卡片
+            const balanceEl = document.getElementById('current-balance');
+            const settlementInfoEl = document.getElementById('settlement-info');
+            const settleBtn = document.getElementById('settle-btn');
+            
+            let statusText = '';
+            let statusIcon = '';
+            let absBalance = Math.abs(netBalance).toFixed(2);
+            
+            if (netBalance > 0.01) {
+                // 筠 應收 (古欠筠)
+                statusText = `古 應付 筠 $${absBalance} TWD`;
+                statusIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-yellow-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l3 3a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd" /></svg>尚未結清`;
+                balanceEl.innerText = `+$${absBalance}`;
+                balanceEl.classList.remove('text-red-400', 'text-white');
+                balanceEl.classList.add('text-green-400');
+                settleBtn.disabled = false;
+            } else if (netBalance < -0.01) {
+                // 筠 應付 (筠欠古)
+                statusText = `筠 應付 古 $${absBalance} TWD`;
+                statusIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-yellow-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l3 3a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd" /></svg>尚未結清`;
+                balanceEl.innerText = `-$${absBalance}`;
+                balanceEl.classList.remove('text-green-400', 'text-white');
+                balanceEl.classList.add('text-red-400');
+                settleBtn.disabled = false;
+            } else {
+                // 已結清
+                statusText = '已全部結清';
+                statusIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>已全部結清`;
+                balanceEl.innerText = `$0.00`;
+                balanceEl.classList.remove('text-green-400', 'text-red-400');
+                balanceEl.classList.add('text-white');
+                settleBtn.disabled = true;
+            }
+
+            settlementInfoEl.innerHTML = statusIcon + '<span>' + statusText + '</span>';
+
+
+            // 3. 更新記錄列表 (Recent Records)
+            const recordsContainer = document.getElementById('records-container');
+            const placeholder = document.getElementById('no-records-placeholder');
+            const sortedRecords = allRecords.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate()); // 最新優先
+            
+            recordsContainer.innerHTML = '';
+            document.getElementById('record-count').innerText = `${allRecords.length} 筆`;
+
+            if (allRecords.length === 0) {
+                recordsContainer.appendChild(placeholder);
+                placeholder.classList.remove('hidden');
+            } else {
+                placeholder.classList.add('hidden');
+                sortedRecords.forEach(record => {
+                    recordsContainer.appendChild(createRecordElement(record));
+                });
+            }
+        }
+
+        // 創建單筆記錄的 HTML 元素
+        function createRecordElement(record) {
+            const isPayerYun = record.payerId === userId;
+            const payerName = isPayerYun ? YUN_NAME : GU_NAME;
+            const debtorName = isPayerYun ? GU_NAME : YUN_NAME;
+            const amountColor = isPayerYun ? 'text-green-600' : 'text-red-600';
+            const iconClass = record.isSettled ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600';
+            const statusText = record.isSettled ? `已結清` : `${debtorName} 欠 ${payerName}`;
+            const settlementDetail = record.isSettled ? `結清: ${record.settledAt.toDate().toLocaleString('zh-TW', { hour12: false })}` : `未結清`;
+
+            const element = document.createElement('div');
+            element.className = 'bg-white p-4 rounded-xl shadow-sm flex items-center justify-between';
+            element.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 rounded-full ${iconClass}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 14h.01M12 11h.01M15 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-base font-medium text-gray-800">${record.item} <span class="text-xs text-gray-500 ml-1">($${record.amount.toFixed(2)})</span></p>
+                        <p class="text-sm text-gray-500">${record.date} | ${payerName} 付款</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-base font-semibold ${amountColor}">$${record.splitAmount.toFixed(2)}</p>
+                    <p class="text-xs text-gray-400">${settlementDetail}</p>
+                </div>
+            `;
+            return element;
+        }
+
+
+        // --- 模態框操作 ---
+
+        let currentPayer = 'yun'; // 新增記錄時的付款人
+
+        window.selectPayer = (payer) => {
+            currentPayer = payer;
+            const yunBtn = document.getElementById('payer-yun');
+            const guBtn = document.getElementById('payer-gu');
+            
+            if (payer === 'yun') {
+                yunBtn.classList.add('bg-white', 'shadow-md', 'text-gray-800');
+                yunBtn.classList.remove('text-gray-500');
+                guBtn.classList.remove('bg-white', 'shadow-md', 'text-gray-800');
+                guBtn.classList.add('text-gray-500');
+            } else {
+                guBtn.classList.add('bg-white', 'shadow-md', 'text-gray-800');
+                guBtn.classList.remove('text-gray-500');
+                yunBtn.classList.remove('bg-white', 'shadow-md', 'text-gray-800');
+                yunBtn.classList.add('text-gray-500');
+            }
+        };
+
+        function showModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.querySelector('div:last-child').classList.remove('translate-y-full', 'scale-90');
+                modal.querySelector('div:last-child').classList.add('translate-y-0', 'scale-100');
+            }, 10);
+        }
+
+        function hideModal(id) {
+            const modal = document.getElementById(id);
+            modal.querySelector('div:last-child').classList.add('translate-y-full', 'scale-90');
+            modal.querySelector('div:last-child').classList.remove('translate-y-0', 'scale-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        window.openAddModal = () => {
+            selectPayer('yun'); // 預設為 '筠付 (我)'
+            showModal('add-modal');
+        };
+        window.closeAddModal = () => hideModal('add-modal');
+        
+        window.openSettleModal = () => {
+            const unsettledRecords = allRecords.filter(r => !r.isSettled);
+            
+            let netBalance = 0; 
+            unsettledRecords.forEach(record => {
+                if (record.payerId === userId) {
+                    netBalance += record.splitAmount;
+                } else if (record.debtorId === userId) {
+                    netBalance -= record.splitAmount;
+                }
+            });
+            
+            const absBalance = Math.abs(netBalance).toFixed(2);
+            let message = '';
+
+            if (netBalance > 0.01) {
+                message = `您（筠）將收到 $${absBalance} TWD 的結算。這將把所有未結清帳目標記為「已結清」。`;
+            } else if (netBalance < -0.01) {
+                message = `您（筠）將支付 $${absBalance} TWD 的結算。這將把所有未結清帳目標記為「已結清」。`;
+            } else {
+                message = `目前沒有未結清的帳目。無需進行結算。`;
+                document.getElementById('settle-all-confirm-btn').disabled = true;
+            }
+
+            document.getElementById('settle-message').innerText = message;
+            showModal('settle-modal');
+        };
+        window.closeSettleModal = () => {
+            document.getElementById('settle-all-confirm-btn').disabled = false;
+            hideModal('settle-modal');
+        };
+        
+        window.toggleInfoModal = () => {
+            const modal = document.getElementById('info-modal');
+            modal.classList.contains('hidden') ? showModal('info-modal') : hideModal('info-modal');
+        };
+
+        window.openDeleteModal = () => {
+            updateDeleteModal();
+            showModal('delete-modal');
+        };
+        window.closeDeleteModal = () => hideModal('delete-modal');
+
+        // 更新清除模態框的內容
+        function updateDeleteModal() {
+            const settledRecords = allRecords.filter(r => r.isSettled).sort((a, b) => b.settledAt.toDate() - a.settledAt.toDate());
+            const listContainer = document.getElementById('delete-records-list');
+            const noRecordsPlaceholder = document.getElementById('no-settled-records');
+            
+            listContainer.innerHTML = '';
+            
+            if (settledRecords.length === 0) {
+                noRecordsPlaceholder.classList.remove('hidden');
+                listContainer.appendChild(noRecordsPlaceholder);
+                document.getElementById('select-all-delete').checked = false;
+                document.getElementById('delete-selected-count').innerText = '已選 0 筆';
+                document.getElementById('delete-selected-btn').disabled = true;
+                document.getElementById('delete-selected-btn').innerText = '清除選取項目 (0)';
+                return;
+            }
+
+            noRecordsPlaceholder.classList.add('hidden');
+
+            settledRecords.forEach(record => {
+                const element = createDeleteRecordElement(record);
+                listContainer.appendChild(element);
+            });
+            
+            updateDeleteCount();
+        }
+
+        // 創建單筆已結清記錄的 HTML 元素 (用於刪除模態框)
+        function createDeleteRecordElement(record) {
+            const isPayerYun = record.payerId === userId;
+            const payerName = isPayerYun ? YUN_NAME : GU_NAME;
+            const debtorName = isPayerYun ? GU_NAME : YUN_NAME;
+            
+            const element = document.createElement('div');
+            element.className = 'bg-gray-50 p-4 rounded-xl flex items-start space-x-3 border border-gray-200';
+            element.innerHTML = `
+                <input type="checkbox" onchange="updateDeleteCount()" value="${record.id}" class="mt-1 h-5 w-5 text-red-500 rounded border-gray-300 focus:ring-red-500">
+                <div class="flex-grow">
+                    <p class="text-base font-semibold text-gray-800 break-all">${record.item}</p>
+                    <p class="text-sm text-gray-500">${record.date} | ${payerName} 付款, ${debtorName} 欠</p>
+                    <p class="text-xs text-gray-400">結清: ${record.settledAt.toDate().toLocaleString('zh-TW', { hour12: false })}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-lg font-bold text-red-500">$${record.splitAmount.toFixed(2)}</p>
+                </div>
+            `;
+            return element;
+        }
+        
+        // 切換全選
+        window.toggleSelectAll = (checked) => {
+            const checkboxes = document.querySelectorAll('#delete-records-list input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+            });
+            updateDeleteCount();
+        };
+
+        // 更新刪除計數和按鈕狀態
+        window.updateDeleteCount = () => {
+            const checkboxes = document.querySelectorAll('#delete-records-list input[type="checkbox"]');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const deleteBtn = document.getElementById('delete-selected-btn');
+            const selectAllCheckbox = document.getElementById('select-all-delete');
+
+            document.getElementById('delete-selected-count').innerText = `已選 ${checkedCount} 筆`;
+            deleteBtn.innerText = `清除選取項目 (${checkedCount})`;
+            deleteBtn.disabled = checkedCount === 0;
+
+            if (checkboxes.length > 0) {
+                selectAllCheckbox.checked = checkedCount === checkboxes.length;
+            }
+        };
+
+
+        // 啟動應用程式
+        initFirebase();
+    </script>
+</body>
+</html>
