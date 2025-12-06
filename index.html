@@ -1,78 +1,534 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>DuoDebt - 雙人記帳</title>
-
-    <!-- PWA and Mobile App Settings -->
-    <link rel="manifest" href="./manifest.json" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DuoDebt - 雙人記帳 (簡易版)</title>
+    
+    <!-- 設定 PWA (可選) -->
     <meta name="theme-color" content="#10b981">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="家庭記帳">
     <link rel="apple-touch-icon" href="./icon-192x192.png">
 
+    <!-- 1. 引入 Tailwind CSS (樣式) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          animation: {
-            'fade-in': 'fadeIn 0.2s ease-out',
-            'slide-up': 'slideUp 0.3s ease-out',
-            'scale-in': 'scaleIn 0.2s ease-out',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0' },
-              '100%': { opacity: '1' },
-            },
-            slideUp: {
-              '0%': { transform: 'translateY(20px)', opacity: '0' },
-              '100%': { transform: 'translateY(0)', opacity: '1' },
-            },
-            scaleIn: {
-              '0%': { transform: 'scale(0.9)', opacity: '0' },
-              '100%': { transform: 'scale(1)', opacity: '1' },
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                    }
+                }
             }
-          }
         }
+    </script>
+
+    <!-- 2. 引入 Icon 庫 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. 設定模組對應 (讓瀏覽器知道去哪裡抓 Google AI SDK) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.run/@google/genai"
       }
     }
-  </script>
+    </script>
+
     <style>
-      /* Hide scrollbar for Chrome, Safari and Opera */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      /* Hide scrollbar for IE, Edge and Firefox */
-      .no-scrollbar {
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-      }
-      body {
-        background-color: #f8fafc;
-        -webkit-tap-highlight-color: transparent;
-      }
+        body { background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal-open { overflow: hidden; }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
-  }
-}
-</script>
 </head>
-  <body>
-    <div id="root"></div>
-    <!-- Script to load your React app -->
-    <script type="module" src="./index.tsx"></script>
-  </body>
+<body class="font-sans text-slate-800 pb-32">
+
+    <!-- Loading 遮罩 -->
+    <div id="loading-overlay" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+        <div class="bg-white/90 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 animate-scale-in">
+            <i data-lucide="loader-2" class="w-6 h-6 text-emerald-500 animate-spin"></i>
+            <span class="font-bold text-gray-700">正在處理中...</span>
+        </div>
+    </div>
+
+    <!-- 頂部區塊 -->
+    <header class="pt-8 px-6 pb-4">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600">
+                家庭記帳 (簡易版)
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="app.openApiKeyModal()" class="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-emerald-500 transition-colors">
+                    <i data-lucide="key" class="w-5 h-5"></i>
+                </button>
+                <button onclick="alert('使用說明：\n1. 請先點擊鑰匙圖示設定 API Key。\n2. 使用下方按鈕新增款項。')" class="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-emerald-500 transition-colors">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 餘額卡片 -->
+        <div id="balance-card" class="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg transition-all duration-300 bg-gradient-to-br from-emerald-500 to-teal-600">
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-2 opacity-90">
+                    <span id="balance-status-text" class="text-sm font-medium tracking-wide">目前狀態</span>
+                    <i data-lucide="wallet" class="w-5 h-5 opacity-80"></i>
+                </div>
+                <div class="flex items-baseline gap-1 mb-4">
+                    <span id="balance-amount" class="text-4xl font-bold tracking-tight">$0</span>
+                    <span class="text-sm opacity-80 font-medium">TWD</span>
+                </div>
+                <div class="flex items-center justify-end" id="settle-btn-container">
+                    <!-- JS 會在這裡動態插入結算按鈕 -->
+                </div>
+            </div>
+            <!-- 裝飾背景 -->
+            <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+        </div>
+    </header>
+
+    <!-- 列表區塊 -->
+    <main class="px-4">
+        <div class="flex items-center justify-between mb-4 px-2">
+            <h2 class="text-lg font-bold text-gray-700">近期記錄</h2>
+            <span id="tx-count" class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">0 筆</span>
+        </div>
+        <div id="transaction-list" class="space-y-3 pb-24">
+            <!-- JS 會在這裡渲染列表 -->
+            <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                <i data-lucide="calendar" class="w-12 h-12 mb-2 opacity-20"></i>
+                <p>目前沒有記錄</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部功能列 -->
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+        <div class="max-w-md mx-auto flex items-center justify-between gap-3">
+            <button onclick="app.openClearSettledModal()" id="btn-clear-settled" class="flex items-center justify-center p-3 rounded-2xl transition-all w-12 h-12 flex-shrink-0 bg-gray-50 text-gray-300 cursor-not-allowed">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+            </button>
+            <button onclick="app.startVoiceInput()" class="flex-1 h-12 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-200 active:scale-[0.98]">
+                <i data-lucide="mic" class="w-5 h-5"></i>
+                <span>語音輸入</span>
+            </button>
+            <button onclick="app.openManualModal()" class="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-emerald-200 active:scale-[0.98]">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                <span>手動記帳</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= 彈跳視窗 (Modals) ================= -->
+
+    <!-- API Key 設定 Modal -->
+    <div id="modal-apikey" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-slide-up">
+            <h2 class="text-xl font-bold mb-4">設定 Google API Key</h2>
+            <p class="text-sm text-gray-500 mb-4">請輸入您的 Gemini API Key 以啟用 AI 功能。金鑰將僅儲存在您的瀏覽器中。</p>
+            <input type="password" id="input-api-key" placeholder="貼上 API Key" class="w-full p-3 bg-gray-50 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="flex gap-3">
+                <button onclick="app.closeModal('modal-apikey')" class="flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600">取消</button>
+                <button onclick="app.saveApiKey()" class="flex-1 py-3 rounded-xl bg-emerald-500 text-white font-bold">儲存</button>
+            </div>
+            <div class="mt-4 text-center">
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-emerald-600 underline">取得 API Key</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 手動記帳 Modal -->
+    <div id="modal-manual" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800">新增記錄</h2>
+                <button onclick="app.closeModal('modal-manual')" class="p-2 bg-gray-100 rounded-full"><i data-lucide="x" class="w-5 h-5 text-gray-600"></i></button>
+            </div>
+            <form id="form-add" onsubmit="app.handleAddSubmit(event)" class="space-y-4">
+                <!-- 誰付錢 -->
+                <div class="flex items-center gap-3">
+                    <label class="text-sm font-medium text-gray-500 w-16">誰付錢</label>
+                    <div class="flex gap-2 flex-1">
+                        <button type="button" onclick="app.setPayer('ME')" id="btn-payer-me" class="flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-indigo-500 bg-indigo-50 text-indigo-700">筠付 (我)</button>
+                        <button type="button" onclick="app.setPayer('FRIEND')" id="btn-payer-friend" class="flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-gray-100 text-gray-400">古付</button>
+                    </div>
+                </div>
+                <!-- 輸入框 -->
+                <div class="space-y-3">
+                    <input type="text" id="input-item" placeholder="項目 (例如：餐費)" class="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" required>
+                    <input type="number" id="input-amount" placeholder="金額" class="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-lg font-medium" required inputmode="decimal">
+                    <input type="date" id="input-date" class="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" required>
+                </div>
+                <button type="submit" class="w-full bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg mt-4">新增記錄</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 邏輯腳本 (Module) -->
+    <script type="module">
+        import { GoogleGenAI } from "@google/genai";
+
+        // ================= 資料與狀態 =================
+        const STORAGE_KEY = 'duodebt_static_v1';
+        const API_KEY_STORAGE = 'duodebt_api_key';
+        
+        const state = {
+            transactions: [],
+            payer: 'ME', // 'ME' | 'FRIEND'
+            apiKey: localStorage.getItem(API_KEY_STORAGE) || ''
+        };
+
+        // ================= 初始化 =================
+        function init() {
+            // 載入資料
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                state.transactions = JSON.parse(saved);
+            }
+            // 預設日期為今天
+            document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+            
+            render();
+            lucide.createIcons();
+        }
+
+        // ================= 核心邏輯 =================
+
+        // 儲存資料
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+            render();
+        }
+
+        // 計算餘額與渲染
+        function render() {
+            // 1. 計算
+            let net = 0;
+            let hasSettled = false;
+            
+            // 排序 (日期新到舊)
+            const sorted = [...state.transactions].sort((a, b) => b.createdAt - a.createdAt);
+
+            sorted.forEach(t => {
+                if (t.isSettled) {
+                    hasSettled = true;
+                    return;
+                }
+                
+                if (t.type === 'DEBT') {
+                    if (t.payer === 'ME') net += t.amount; // 古欠我 (+)
+                    else net -= t.amount; // 我欠古 (-)
+                } else if (t.type === 'REPAYMENT') {
+                    if (t.payer === 'ME') net += t.amount;
+                    else net -= t.amount;
+                }
+            });
+
+            // 2. 更新餘額卡片
+            const card = document.getElementById('balance-card');
+            const statusText = document.getElementById('balance-status-text');
+            const amountText = document.getElementById('balance-amount');
+            const settleBtnContainer = document.getElementById('settle-btn-container');
+
+            amountText.innerText = `$${Math.abs(net).toLocaleString()}`;
+            
+            // 移除舊的顏色
+            card.className = "relative overflow-hidden rounded-3xl p-6 text-white shadow-lg transition-all duration-300";
+            
+            if (net === 0) {
+                statusText.innerText = "目前狀態";
+                card.classList.add('bg-gradient-to-br', 'from-gray-500', 'to-slate-600');
+                settleBtnContainer.innerHTML = `<div class="flex items-center gap-1 text-white/80 text-sm font-medium px-2 py-2"><i data-lucide="check-circle" class="w-4 h-4"></i> 已全部結清</div>`;
+            } else {
+                statusText.innerText = net > 0 ? "古欠筠" : "筠欠古";
+                if (net > 0) card.classList.add('bg-gradient-to-br', 'from-emerald-500', 'to-teal-600');
+                else card.classList.add('bg-gradient-to-br', 'from-rose-500', 'to-pink-600');
+
+                settleBtnContainer.innerHTML = `
+                    <button onclick="app.settleAll()" class="flex items-center gap-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> 結算全部
+                    </button>`;
+            }
+
+            // 3. 更新列表
+            const listEl = document.getElementById('transaction-list');
+            const countEl = document.getElementById('tx-count');
+            countEl.innerText = `${state.transactions.length} 筆`;
+
+            if (state.transactions.length === 0) {
+                listEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                        <i data-lucide="calendar" class="w-12 h-12 mb-2 opacity-20"></i>
+                        <p>目前沒有記錄</p>
+                    </div>`;
+            } else {
+                listEl.innerHTML = sorted.map(t => {
+                    const isMe = t.payer === 'ME';
+                    const isSettled = t.isSettled;
+                    const isDebt = t.type === 'DEBT';
+                    
+                    let amountColor = '';
+                    let iconName = '';
+                    let prefix = '';
+                    let bgClass = 'bg-white';
+                    let textClass = 'text-gray-800';
+                    let iconBg = isMe ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600';
+
+                    if (isSettled) {
+                        bgClass = 'bg-gray-100 border-gray-200';
+                        textClass = 'text-gray-500';
+                        amountColor = 'text-gray-400 line-through decoration-2';
+                        iconBg = 'bg-gray-200 text-gray-400';
+                        iconName = 'check';
+                    } else {
+                        if (isDebt) {
+                            if (isMe) {
+                                amountColor = 'text-emerald-600';
+                                iconName = 'arrow-up-right';
+                                prefix = '+';
+                            } else {
+                                amountColor = 'text-rose-600';
+                                iconName = 'arrow-down-left';
+                                prefix = '-';
+                            }
+                        } else {
+                            amountColor = 'text-blue-500';
+                            iconName = isMe ? 'arrow-up-right' : 'arrow-down-left';
+                            prefix = '還款 ';
+                        }
+                    }
+
+                    return `
+                    <div class="${bgClass} rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-center transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full ${iconBg} flex-shrink-0 w-9 h-9 flex items-center justify-center">
+                                <span class="text-xs font-bold">${isMe ? '筠' : '古'}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-semibold truncate ${textClass}">${t.item}</h3>
+                                <p class="text-xs text-gray-400">${t.date}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 pl-2">
+                            <div class="text-right flex-shrink-0 ${amountColor}">
+                                <div class="flex items-center justify-end gap-1 font-bold text-lg">
+                                    ${!isSettled && isDebt ? `<i data-lucide="${iconName}" class="w-4 h-4"></i>` : ''}
+                                    ${prefix}$${t.amount}
+                                </div>
+                                <p class="text-[10px] uppercase tracking-wider font-semibold opacity-60">
+                                    ${isSettled ? (t.settledAt ? '已結清' : '已結算') : (isDebt ? (isMe ? '先墊' : '代墊') : '還款')}
+                                </p>
+                            </div>
+                            <button onclick="app.deleteTx('${t.id}')" class="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 -mr-2 rounded-full transition-all">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            // 4. 更新清除按鈕狀態
+            const clearBtn = document.getElementById('btn-clear-settled');
+            if (hasSettled) {
+                clearBtn.disabled = false;
+                clearBtn.className = "flex items-center justify-center p-3 rounded-2xl transition-all w-12 h-12 flex-shrink-0 bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500";
+            } else {
+                clearBtn.disabled = true;
+                clearBtn.className = "flex items-center justify-center p-3 rounded-2xl transition-all w-12 h-12 flex-shrink-0 bg-gray-50 text-gray-300 cursor-not-allowed";
+            }
+
+            // 重新渲染 Icon
+            lucide.createIcons();
+        }
+
+        // ================= 操作功能 =================
+
+        // 開啟 Modal
+        window.app = {
+            openManualModal: () => {
+                document.getElementById('modal-manual').classList.remove('hidden');
+            },
+            closeModal: (id) => {
+                document.getElementById(id).classList.add('hidden');
+            },
+            openApiKeyModal: () => {
+                document.getElementById('input-api-key').value = state.apiKey;
+                document.getElementById('modal-apikey').classList.remove('hidden');
+            },
+            saveApiKey: () => {
+                const key = document.getElementById('input-api-key').value.trim();
+                state.apiKey = key;
+                localStorage.setItem(API_KEY_STORAGE, key);
+                app.closeModal('modal-apikey');
+                alert('API Key 已儲存！');
+            },
+            
+            // 設定付款人按鈕樣式
+            setPayer: (payer) => {
+                state.payer = payer;
+                const btnMe = document.getElementById('btn-payer-me');
+                const btnFriend = document.getElementById('btn-payer-friend');
+                
+                if (payer === 'ME') {
+                    btnMe.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-indigo-500 bg-indigo-50 text-indigo-700";
+                    btnFriend.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-gray-100 text-gray-400";
+                } else {
+                    btnMe.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-gray-100 text-gray-400";
+                    btnFriend.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-orange-500 bg-orange-50 text-orange-700";
+                }
+            },
+
+            // 送出表單
+            handleAddSubmit: (e) => {
+                e.preventDefault();
+                const item = document.getElementById('input-item').value;
+                const amount = parseFloat(document.getElementById('input-amount').value);
+                const date = document.getElementById('input-date').value;
+
+                if (!item || !amount) return;
+
+                const newTx = {
+                    id: crypto.randomUUID(),
+                    date,
+                    item,
+                    amount,
+                    payer: state.payer,
+                    type: 'DEBT',
+                    createdAt: Date.now(),
+                    isSettled: false
+                };
+
+                state.transactions.unshift(newTx);
+                save();
+
+                // 重置表單
+                document.getElementById('input-item').value = '';
+                document.getElementById('input-amount').value = '';
+                app.setPayer('ME');
+                app.closeModal('modal-manual');
+            },
+
+            // 刪除
+            deleteTx: (id) => {
+                if(confirm('確定要刪除這筆記錄嗎？')) {
+                    state.transactions = state.transactions.filter(t => t.id !== id);
+                    save();
+                }
+            },
+
+            // 結算全部
+            settleAll: () => {
+                if(confirm('確定要將所有未結清項目標記為已結算嗎？')) {
+                    const now = new Date();
+                    const timeString = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                    
+                    state.transactions = state.transactions.map(t => {
+                        if (!t.isSettled) {
+                            return { ...t, isSettled: true, settledAt: timeString };
+                        }
+                        return t;
+                    });
+                    save();
+                }
+            },
+
+            // 清除已結算
+            openClearSettledModal: () => {
+                if(confirm('確定要永久刪除所有「已結算」的歷史記錄嗎？此動作無法復原。')) {
+                    state.transactions = state.transactions.filter(t => !t.isSettled);
+                    save();
+                }
+            },
+
+            // 語音輸入 (Gemini AI)
+            startVoiceInput: async () => {
+                if (!state.apiKey) {
+                    alert('請先點擊右上角鑰匙圖示設定 API Key，才能使用語音功能。');
+                    app.openApiKeyModal();
+                    return;
+                }
+
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert('您的瀏覽器不支援語音輸入功能 (請使用 Chrome)');
+                    return;
+                }
+
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = 'zh-TW';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                recognition.start();
+                
+                // 顯示 Loading
+                document.getElementById('loading-overlay').classList.remove('hidden');
+
+                recognition.onresult = async (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    console.log("語音內容:", transcript);
+                    
+                    try {
+                        await processWithGemini(transcript);
+                    } catch (err) {
+                        console.error(err);
+                        alert('AI 分析失敗: ' + err.message);
+                    } finally {
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                    }
+                };
+
+                recognition.onerror = (e) => {
+                    console.error(e);
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    alert('語音辨識錯誤');
+                };
+            }
+        };
+
+        // ================= Gemini AI 邏輯 =================
+        async function processWithGemini(transcript) {
+            const ai = new GoogleGenAI({ apiKey: state.apiKey });
+            const today = new Date().toISOString().split('T')[0];
+
+            const prompt = `User Input: "${transcript}"
+            Current Date: ${today}
+            Context: This is a family expense tracker between "筠" (Me/User) and "古" (Family member).
+            Common items: 餐費, 家用費, 其他.
+            
+            Tasks:
+            1. Extract item name.
+            2. Extract amount (number).
+            3. Determine date (YYYY-MM-DD).
+            4. Determine who paid:
+               - "I paid", "筠 paid", "筠出的" -> ME
+               - "古 paid", "古出的" -> FRIEND
+            
+            Output JSON only: {"item": string, "amount": number, "date": string, "payer": "ME"|"FRIEND", "type": "DEBT"}`;
+
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: { responseMimeType: "application/json" }
+            });
+
+            const result = JSON.parse(response.text);
+            
+            // 填入表單並打開 Modal
+            document.getElementById('input-item').value = result.item;
+            document.getElementById('input-amount').value = result.amount;
+            document.getElementById('input-date').value = result.date;
+            app.setPayer(result.payer);
+            app.openManualModal();
+        }
+
+        // 啟動 App
+        init();
+    </script>
+</body>
 </html>
