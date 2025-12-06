@@ -1,7 +1,0 @@
-{
-  "name": "Copy of DuoDebt (雙人記帳)",
-  "description": "一個簡約的雙人記帳 App，專為記錄朋友間的互相賒帳與還款設計。支援 AI 語意輸入，自動分析記帳內容。",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
