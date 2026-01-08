@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>家庭記帳工具</title>
     
+    <!-- APP 圖示與 PWA 設定 -->
+    <meta name="theme-color" content="#10b981">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512x512.png">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -259,7 +265,7 @@
             settleAll: () => {
                 const unsettledCount = state.transactions.filter(t => !t.isSettled).length;
                 if (unsettledCount === 0) return;
-                if(confirm(`確定要結清？結清後餘額將歸零。`)) {
+                if(confirm(`防呆視窗：確定要結清目前的 ${unsettledCount} 筆項目嗎？結清後餘額將歸零並標記為灰色。`)) {
                     state.transactions = state.transactions.map(t => ({ ...t, isSettled: true }));
                     save();
                 }
