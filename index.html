@@ -11,23 +11,23 @@
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f0f4f8;
+            background-color: #f0f4f8; /* 淺灰色背景 */
             -webkit-tap-highlight-color: transparent;
         }
         .card-dark {
-            background-color: #374151;
+            background-color: #374151; /* 深灰色卡片 */
             color: #e5e7eb;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         .btn-primary {
-            background-color: #0d9488;
+            background-color: #0d9488; /* 綠色主按鈕 */
             transition: background-color 0.2s;
         }
         .btn-primary:hover {
             background-color: #0f766e;
         }
         .btn-secondary {
-            background-color: #8b5cf6;
+            background-color: #8b5cf6; /* 紫色輔助按鈕 */
             transition: background-color 0.2s;
         }
         .btn-secondary:hover {
@@ -35,13 +35,17 @@
         }
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(4px);
         }
-        /* 優化手機端日期輸入框樣式 */
+        /* 修復手機端日期輸入框跑版 */
         input[type="date"] {
             min-height: 3rem;
             appearance: none;
             -webkit-appearance: none;
+        }
+        /* 隱藏滾動條但保持功能 */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
         }
     </style>
 </head>
@@ -62,15 +66,15 @@
         <!-- 狀態卡片 -->
         <div id="status-card" class="card-dark p-6 rounded-xl mb-6 flex-shrink-0">
             <div class="flex justify-between items-start">
-                <div class="min-w-0">
+                <div>
                     <p class="text-sm font-medium opacity-75">目前狀態</p>
-                    <div class="flex items-end mt-1 overflow-hidden">
-                        <span id="current-balance" class="text-4xl font-extrabold truncate">$0</span>
+                    <div class="flex items-end mt-1">
+                        <span id="current-balance" class="text-4xl font-extrabold">$0</span>
                         <span class="text-lg font-medium ml-1 mb-1 opacity-75">TWD</span>
                     </div>
-                    <p id="settlement-info" class="text-sm mt-3 font-medium flex items-center truncate"></p>
+                    <p id="settlement-info" class="text-sm mt-3 font-medium flex items-center"></p>
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-50 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
             </div>
@@ -79,14 +83,14 @@
             </button>
         </div>
         
-        <!-- 近期記錄列表標題 -->
+        <!-- 近期記錄列表 -->
         <div class="flex justify-between items-center mb-3 flex-shrink-0">
             <h2 class="text-lg font-semibold text-gray-800">近期記錄</h2>
             <span id="record-count" class="text-sm text-gray-500">0 筆</span>
         </div>
 
-        <!-- 記錄容器：增加滾動流暢度 -->
-        <div id="records-container" class="space-y-3 flex-grow overflow-y-auto pb-28">
+        <!-- 記錄容器 -->
+        <div id="records-container" class="space-y-3 flex-grow overflow-y-auto pb-24 scrollbar-hide">
             <div id="no-records-placeholder" class="text-center p-12 text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h.01M7 12h10l-1 9H8l-1-9zm5-9H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2h-3" />
@@ -95,21 +99,21 @@
             </div>
         </div>
 
-        <!-- 底部固定按鈕區 -->
+        <!-- 底部操作區塊 -->
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto flex justify-between space-x-2 rounded-t-2xl shadow-2xl z-40">
-            <button onclick="openDeleteModal()" class="w-1/3 py-3 rounded-xl bg-gray-100 text-gray-500 font-semibold flex flex-col items-center justify-center hover:bg-gray-200 active:scale-95 transition">
+            <button onclick="openDeleteModal()" class="w-1/3 py-3 rounded-xl bg-gray-100 text-gray-500 font-semibold flex flex-col items-center justify-center hover:bg-gray-200 transition duration-150">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 <span class="text-[10px]">清理記錄</span>
             </button>
-            <button onclick="openExportModal()" class="w-1/3 py-3 rounded-xl btn-secondary text-white font-semibold flex flex-col items-center justify-center shadow-lg shadow-purple-200 active:scale-95 transition">
+            <button onclick="openExportModal()" class="w-1/3 py-3 rounded-xl btn-secondary text-white font-semibold flex flex-col items-center justify-center shadow-lg shadow-purple-300/50">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span class="text-[10px]">匯出文字</span>
             </button>
-            <button onclick="openAddModal()" class="w-1/3 py-3 rounded-xl btn-primary text-white font-semibold flex flex-col items-center justify-center shadow-lg shadow-teal-200 active:scale-95 transition">
+            <button onclick="openAddModal()" class="w-1/3 py-3 rounded-xl btn-primary text-white font-semibold flex flex-col items-center justify-center shadow-lg shadow-teal-400/50">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
                 </svg>
@@ -120,7 +124,7 @@
 
     <!-- 模態框：新增記錄 -->
     <div id="add-modal" class="fixed inset-0 z-50 flex items-end justify-center hidden modal-overlay transition-opacity duration-300">
-        <div class="bg-white rounded-t-2xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl p-6 pb-10">
+        <div class="bg-white rounded-t-3xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl p-6 pb-12">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-800">新增記錄</h2>
                 <button onclick="closeAddModal()" class="text-gray-400 p-2">
@@ -129,15 +133,15 @@
             </div>
             <form id="add-record-form" onsubmit="handleNewRecord(event)">
                 <div class="flex mb-5 p-1 bg-gray-100 rounded-xl">
-                    <button type="button" id="payer-yun" onclick="selectPayer('yun')" class="flex-1 py-2.5 rounded-xl text-center font-semibold bg-white text-gray-800 shadow-sm transition">筠付 (我)</button>
-                    <button type="button" id="payer-gu" onclick="selectPayer('gu')" class="flex-1 py-2.5 rounded-xl text-center font-semibold text-gray-500 transition">古付</button>
+                    <button type="button" id="payer-yun" onclick="selectPayer('yun')" class="flex-1 py-2.5 rounded-xl text-center font-semibold bg-white text-gray-800 shadow-sm transition-all duration-200">筠付 (我)</button>
+                    <button type="button" id="payer-gu" onclick="selectPayer('gu')" class="flex-1 py-2.5 rounded-xl text-center font-semibold text-gray-500 transition-all duration-200">古付</button>
                 </div>
                 <div class="space-y-4">
-                    <input type="text" id="item" placeholder="項目內容" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition">
-                    <input type="number" id="amount" placeholder="輸入金額" required min="0.01" step="0.01" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition">
-                    <input type="date" id="date" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition">
+                    <input type="text" id="item" placeholder="項目名稱" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all">
+                    <input type="number" id="amount" placeholder="金額" required min="0.01" step="0.01" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all">
+                    <input type="date" id="date" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all">
                 </div>
-                <button type="submit" id="add-record-submit-btn" class="w-full mt-6 py-4 rounded-xl btn-primary text-white font-bold text-lg active:scale-95 transition">確認新增</button>
+                <button type="submit" id="add-record-submit-btn" class="w-full mt-6 py-4 rounded-xl btn-primary text-white font-bold text-lg shadow-lg active:scale-95 transition-all">確認新增</button>
                 <div id="add-error-message" class="text-red-500 text-center mt-3 text-sm hidden"></div>
             </form>
         </div>
@@ -148,16 +152,16 @@
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-gray-800">匯出記錄</h2>
-                <button onclick="closeExportModal()" class="text-gray-400 p-1">
+                <button onclick="closeExportModal()" class="text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             <textarea id="export-textarea" readonly class="w-full h-48 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 focus:outline-none mb-4 leading-relaxed"></textarea>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="copyExportText()" class="py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 flex items-center justify-center active:scale-95 transition">
+            <div class="flex space-x-2">
+                <button onclick="copyExportText()" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 flex items-center justify-center active:scale-95 transition">
                     複製文字
                 </button>
-                <button onclick="downloadExportFile()" class="py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center active:scale-95 transition">
+                <button onclick="downloadExportFile()" class="flex-1 py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center active:scale-95 transition">
                     下載檔案
                 </button>
             </div>
@@ -167,33 +171,30 @@
 
     <!-- 模態框：清除已結算 -->
     <div id="delete-modal" class="fixed inset-0 z-50 flex items-end justify-center hidden modal-overlay transition-opacity duration-300">
-        <div class="bg-white rounded-t-2xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl p-6 pb-10">
+        <div class="bg-white rounded-t-3xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl p-6 pb-12">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-gray-800">清理已結算</h2>
-                <button onclick="closeDeleteModal()" class="text-gray-400 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                <h2 class="text-xl font-bold text-gray-800">清除已結算項目</h2>
+                <button onclick="closeDeleteModal()" class="text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <div id="delete-records-list" class="max-h-60 overflow-y-auto space-y-2 mb-4 scrollbar-hide"></div>
-            <div class="flex items-center justify-between mb-4 px-1">
-                <label class="flex items-center text-gray-600 font-medium select-none cursor-pointer">
+            <div id="delete-records-list" class="max-h-60 overflow-y-auto space-y-3 mb-4 scrollbar-hide"></div>
+            <div class="flex items-center justify-between mb-4">
+                <label class="flex items-center text-gray-700 font-semibold cursor-pointer">
                     <input type="checkbox" id="select-all-delete" onchange="toggleSelectAll(this.checked)" class="h-5 w-5 text-teal-600 rounded border-gray-300">
-                    <span class="ml-2 text-sm">全選</span>
+                    <span class="ml-2">全選</span>
                 </label>
-                <span id="delete-selected-count" class="text-xs text-gray-400">已選 0 筆</span>
+                <span id="delete-selected-count" class="text-xs text-gray-500">已選 0 筆</span>
             </div>
-            <button onclick="handleDeleteSelected()" id="delete-selected-btn" class="w-full py-4 rounded-xl bg-red-500 text-white font-bold disabled:opacity-30 transition shadow-lg shadow-red-100" disabled>確認清除</button>
+            <button onclick="handleDeleteSelected()" id="delete-selected-btn" class="w-full py-4 rounded-xl bg-red-500 text-white font-bold shadow-lg disabled:opacity-30 transition-all" disabled>清除選取項目 (0)</button>
         </div>
     </div>
 
-    <!-- 模態框：結清確認 -->
+    <!-- 模態框：結清 -->
     <div id="settle-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay transition-opacity duration-300 p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl text-center">
-            <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <h2 class="text-xl font-bold mb-2">確認結清帳目？</h2>
-            <p id="settle-message" class="text-sm text-gray-500 mb-6 px-4"></p>
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
+            <h2 class="text-xl font-bold mb-4 text-center">結清帳目</h2>
+            <p id="settle-message" class="text-sm text-gray-600 mb-6 text-center px-2"></p>
             <div class="flex space-x-3">
-                <button onclick="closeSettleModal()" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold">先不要</button>
+                <button onclick="closeSettleModal()" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold">取消</button>
                 <button onclick="handleSettleAll()" id="settle-all-confirm-btn" class="flex-1 py-3 rounded-xl btn-primary text-white font-semibold">確認結清</button>
             </div>
         </div>
@@ -206,18 +207,18 @@
                 <h2 class="text-lg font-bold">App 資訊</h2>
                 <button onclick="toggleInfoModal()"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">共同帳戶</p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">關於本工具</p>
                     <p class="text-sm text-gray-700">筠 & 古 的家庭共同記帳</p>
                 </div>
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">我的 ID</p>
-                    <p id="yun-id-display" class="text-[10px] text-gray-500 break-all bg-gray-50 p-2 rounded-lg mt-1"></p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">我的 ID (筠)</p>
+                    <p id="yun-id-display" class="text-[10px] text-gray-500 break-all bg-gray-50 p-2 rounded-lg"></p>
                 </div>
                 <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">夥伴 ID</p>
-                    <p id="gu-id-display" class="text-[10px] text-gray-500 break-all bg-gray-50 p-2 rounded-lg mt-1"></p>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">夥伴 ID (古)</p>
+                    <p id="gu-id-display" class="text-[10px] text-gray-500 break-all bg-gray-50 p-2 rounded-lg"></p>
                 </div>
             </div>
         </div>
@@ -262,13 +263,12 @@
             onSnapshot(query(getCollectionRef()), (snapshot) => {
                 allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateUI();
-            }, (err) => console.error("Snapshot error:", err));
+            });
         }
 
         window.handleNewRecord = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('add-record-submit-btn');
-            const originalText = btn.innerText;
             btn.disabled = true;
             btn.innerText = "儲存中...";
             try {
@@ -295,7 +295,7 @@
                 document.getElementById('add-error-message').classList.remove('hidden');
             } finally { 
                 btn.disabled = false; 
-                btn.innerText = originalText;
+                btn.innerText = "確認新增";
             }
         };
 
@@ -329,7 +329,7 @@
             const abs = Math.abs(net).toFixed(2);
             
             balEl.innerText = `${net >= 0 ? '+' : '-'}$${abs}`;
-            balEl.className = `text-4xl font-extrabold truncate ${net > 0.01 ? 'text-green-400' : net < -0.01 ? 'text-red-400' : 'text-white'}`;
+            balEl.className = `text-4xl font-extrabold transition-all duration-300 ${net > 0.01 ? 'text-green-400' : net < -0.01 ? 'text-red-400' : 'text-white'}`;
             infoEl.innerHTML = net > 0.01 ? `古 應付 筠 $${abs}` : net < -0.01 ? `筠 應付 古 $${abs}` : '已全部結清';
             document.getElementById('settle-btn').disabled = unsettled.length === 0;
 
@@ -340,12 +340,11 @@
             else {
                 allRecords.sort((a,b) => b.createdAt.toDate() - a.createdAt.toDate()).forEach(r => {
                     const el = document.createElement('div');
-                    // 使用 flex-1 和 min-w-0 防止手機版文字溢出
-                    el.className = 'bg-white p-4 rounded-xl shadow-sm flex justify-between items-center space-x-3';
+                    el.className = 'bg-white p-4 rounded-xl shadow-sm flex justify-between items-center space-x-2';
                     el.innerHTML = `
                         <div class="min-w-0 flex-1">
                             <p class="font-bold text-gray-800 break-all leading-tight">${r.item} <span class="text-[10px] text-gray-400 font-normal">($${r.amount})</span></p>
-                            <p class="text-[11px] text-gray-400 mt-1 uppercase tracking-tighter">${r.date} · ${r.payerName}付款</p>
+                            <p class="text-[11px] text-gray-400 mt-1">${r.date} · ${r.payerName}付款</p>
                         </div>
                         <div class="text-right flex-shrink-0">
                             <p class="font-extrabold ${r.payerId === userId ? 'text-teal-600' : 'text-rose-500'}">$${r.splitAmount.toFixed(2)}</p>
@@ -398,11 +397,11 @@
         window.selectPayer = (p) => {
             const y = document.getElementById('payer-yun'), g = document.getElementById('payer-gu');
             if (p === 'yun') { 
-                y.className = 'flex-1 py-2.5 rounded-xl bg-white shadow-sm text-gray-800 font-semibold transition'; 
-                g.className = 'flex-1 py-2.5 text-gray-400 font-semibold transition'; 
+                y.className = 'flex-1 py-2.5 rounded-xl bg-white shadow-sm text-gray-800 font-semibold transition-all'; 
+                g.className = 'flex-1 py-2.5 text-gray-400 font-semibold transition-all'; 
             } else { 
-                g.className = 'flex-1 py-2.5 rounded-xl bg-white shadow-sm text-gray-800 font-semibold transition'; 
-                y.className = 'flex-1 py-2.5 text-gray-400 font-semibold transition'; 
+                g.className = 'flex-1 py-2.5 rounded-xl bg-white shadow-sm text-gray-800 font-semibold transition-all'; 
+                y.className = 'flex-1 py-2.5 text-gray-400 font-semibold transition-all'; 
             }
         };
 
@@ -423,15 +422,12 @@
         };
 
         window.openAddModal = () => { selectPayer('yun'); showModal('add-modal'); };
-        window.closeAddModal = () => {
-            hideModal('add-modal');
-            document.getElementById('add-error-message').classList.add('hidden');
-        };
+        window.closeAddModal = () => hideModal('add-modal');
         window.closeExportModal = () => hideModal('export-modal');
         window.openSettleModal = () => {
             const unsettled = allRecords.filter(r => !r.isSettled);
             let net = 0; unsettled.forEach(r => net += (r.payerId === userId ? r.splitAmount : -r.splitAmount));
-            document.getElementById('settle-message').innerText = `結算後將標記 ${unsettled.length} 筆為已結清。目前淨額為 $${Math.abs(net).toFixed(2)}`;
+            document.getElementById('settle-message').innerText = `結算後將標記 ${unsettled.length} 筆項目為已結清。目前淨額為 $${Math.abs(net).toFixed(2)}`;
             showModal('settle-modal');
         };
         window.closeSettleModal = () => hideModal('settle-modal');
@@ -458,7 +454,7 @@
         window.updateDelCount = () => {
             const count = document.querySelectorAll('#delete-records-list input:checked').length;
             document.getElementById('delete-selected-count').innerText = `已選 ${count} 筆`;
-            document.getElementById('delete-selected-btn').innerText = count > 0 ? `確認清除 (${count})` : "確認清除";
+            document.getElementById('delete-selected-btn').innerText = count > 0 ? `確認清除 (${count})` : "清除選取項目 (0)";
             document.getElementById('delete-selected-btn').disabled = count === 0;
         };
         window.toggleSelectAll = (c) => { 
