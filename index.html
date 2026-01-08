@@ -3,467 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>家庭記帳 (筠 & 古)</title>
-    <!-- 載入 Tailwind CSS -->
+    <title>家庭記帳工具</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 載入 Noto Sans TC 字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f0f4f8; /* 淺灰色背景 */
-            -webkit-tap-highlight-color: transparent;
-        }
-        .card-dark {
-            background-color: #374151; /* 深灰色卡片 */
-            color: #e5e7eb;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        .btn-primary {
-            background-color: #0d9488; /* 綠色主按鈕 */
-            transition: background-color 0.2s;
-        }
-        .btn-primary:hover {
-            background-color: #0f766e;
-        }
-        .btn-secondary {
-            background-color: #8b5cf6; /* 紫色輔助按鈕 */
-            transition: background-color 0.2s;
-        }
-        .btn-secondary:hover {
-            background-color: #7c3aed;
-        }
-        .modal-overlay {
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-        }
-        /* 修復手機端日期輸入框跑版 */
-        input[type="date"] {
-            min-height: 3rem;
-            appearance: none;
-            -webkit-appearance: none;
-        }
-        /* 隱藏滾動條但保持功能 */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
+        body { background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="font-sans text-slate-800 pb-32">
 
-    <!-- 主應用程式容器 -->
-    <div id="app" class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
-        <!-- 頂部標題 -->
-        <header class="flex justify-between items-center py-4">
-            <h1 class="text-2xl font-bold text-gray-800">家庭記帳 (筠 & 古)</h1>
-            <button onclick="toggleInfoModal()" class="text-gray-400 hover:text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </button>
-        </header>
-
-        <!-- 狀態卡片 -->
-        <div id="status-card" class="card-dark p-6 rounded-xl mb-6 flex-shrink-0">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-sm font-medium opacity-75">目前狀態</p>
-                    <div class="flex items-end mt-1">
-                        <span id="current-balance" class="text-4xl font-extrabold">$0</span>
-                        <span class="text-lg font-medium ml-1 mb-1 opacity-75">TWD</span>
-                    </div>
-                    <p id="settlement-info" class="text-sm mt-3 font-medium flex items-center"></p>
+    <!-- 頂部區塊 -->
+    <header class="pt-12 px-6 pb-4">
+        <!-- 餘額卡片 -->
+        <div id="balance-card" class="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg transition-all duration-300 bg-gradient-to-br from-emerald-500 to-teal-600">
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-2 opacity-90">
+                    <span id="balance-status-text" class="text-sm font-medium tracking-wide">目前狀態</span>
+                    <i data-lucide="wallet" class="w-5 h-5 opacity-80"></i>
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
+                <div class="flex items-baseline gap-1 mb-4">
+                    <span id="balance-amount" class="text-4xl font-bold tracking-tight">$0</span>
+                    <span class="text-sm opacity-80 font-medium">TWD</span>
+                </div>
+                <div class="flex items-center justify-end" id="settle-btn-container">
+                    <!-- JS 會在這裡動態插入結算按鈕 -->
+                </div>
             </div>
-            <button id="settle-btn" onclick="openSettleModal()" class="w-full mt-4 py-2 px-4 rounded-lg text-sm font-semibold bg-gray-500/20 hover:bg-gray-500/40 transition duration-150">
-                結清所有帳目
-            </button>
+            <!-- 裝飾背景 -->
+            <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
         </div>
-        
-        <!-- 近期記錄列表 -->
-        <div class="flex justify-between items-center mb-3 flex-shrink-0">
-            <h2 class="text-lg font-semibold text-gray-800">近期記錄</h2>
-            <span id="record-count" class="text-sm text-gray-500">0 筆</span>
-        </div>
+    </header>
 
-        <!-- 記錄容器 -->
-        <div id="records-container" class="space-y-3 flex-grow overflow-y-auto pb-24 scrollbar-hide">
-            <div id="no-records-placeholder" class="text-center p-12 text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h.01M7 12h10l-1 9H8l-1-9zm5-9H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2h-3" />
-                </svg>
+    <!-- 列表區塊 -->
+    <main class="px-4">
+        <div class="flex items-center justify-between mb-4 px-2">
+            <h2 class="text-lg font-bold text-gray-700">近期記錄</h2>
+            <span id="tx-count" class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">0 筆</span>
+        </div>
+        <div id="transaction-list" class="space-y-3 pb-24">
+            <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                <i data-lucide="calendar" class="w-12 h-12 mb-2 opacity-20"></i>
                 <p>目前沒有記錄</p>
             </div>
         </div>
+    </main>
 
-        <!-- 底部操作區塊 -->
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto flex justify-between space-x-2 rounded-t-2xl shadow-2xl z-40">
-            <button onclick="openDeleteModal()" class="w-1/3 py-3 rounded-xl bg-gray-100 text-gray-500 font-semibold flex flex-col items-center justify-center hover:bg-gray-200 transition duration-150">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span class="text-[10px]">清理記錄</span>
+    <!-- 底部功能列 -->
+    <div class="fixed bottom-0 left-0 right-0 pb-10 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+        <div class="max-w-md mx-auto flex items-center justify-between gap-3">
+            <button onclick="app.openClearSettledModal()" id="btn-clear-settled" class="flex items-center justify-center p-3 rounded-2xl transition-all w-12 h-12 flex-shrink-0 bg-gray-50 text-gray-300 cursor-not-allowed">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
             </button>
-            <button onclick="openExportModal()" class="w-1/3 py-3 rounded-xl btn-secondary text-white font-semibold flex flex-col items-center justify-center shadow-lg shadow-purple-300/50">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span class="text-[10px]">匯出文字</span>
+            <button onclick="app.prepareExport()" class="flex-1 h-12 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-200 active:scale-[0.98]">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                <span>匯出文字</span>
             </button>
-            <button onclick="openAddModal()" class="w-1/3 py-3 rounded-xl btn-primary text-white font-semibold flex flex-col items-center justify-center shadow-lg shadow-teal-400/50">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
-                </svg>
-                <span class="text-[10px]">手動記帳</span>
+            <button onclick="app.openManualModal()" class="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-emerald-200 active:scale-[0.98]">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                <span>手動記帳</span>
             </button>
         </div>
     </div>
 
-    <!-- 模態框：新增記錄 -->
-    <div id="add-modal" class="fixed inset-0 z-50 flex items-end justify-center hidden modal-overlay transition-opacity duration-300">
-        <div class="bg-white rounded-t-3xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl p-6 pb-12">
+    <!-- ================= Modals ================= -->
+
+    <!-- 手動記帳 Modal -->
+    <div id="modal-manual" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-slide-up">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-800">新增記錄</h2>
-                <button onclick="closeAddModal()" class="text-gray-400 p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                <button onclick="app.closeModal('modal-manual')" class="p-2 bg-gray-100 rounded-full"><i data-lucide="x" class="w-5 h-5 text-gray-600"></i></button>
             </div>
-            <form id="add-record-form" onsubmit="handleNewRecord(event)">
-                <div class="flex mb-5 p-1 bg-gray-100 rounded-xl">
-                    <button type="button" id="payer-yun" onclick="selectPayer('yun')" class="flex-1 py-2.5 rounded-xl text-center font-semibold bg-white text-gray-800 shadow-sm transition-all duration-200">筠付 (我)</button>
-                    <button type="button" id="payer-gu" onclick="selectPayer('gu')" class="flex-1 py-2.5 rounded-xl text-center font-semibold text-gray-500 transition-all duration-200">古付</button>
+            <form id="form-add" onsubmit="app.handleAddSubmit(event)" class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <label class="text-sm font-medium text-gray-500 w-16">誰付錢</label>
+                    <div class="flex gap-2 flex-1">
+                        <button type="button" onclick="app.setPayer('ME')" id="btn-payer-me" class="flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-indigo-500 bg-indigo-50 text-indigo-700">筠付 (我)</button>
+                        <button type="button" onclick="app.setPayer('FRIEND')" id="btn-payer-friend" class="flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all border-gray-100 text-gray-400">古付</button>
+                    </div>
                 </div>
-                <div class="space-y-4">
-                    <input type="text" id="item" placeholder="項目名稱" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all">
-                    <input type="number" id="amount" placeholder="金額" required min="0.01" step="0.01" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all">
-                    <input type="date" id="date" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none transition-all">
+                <div class="space-y-3">
+                    <input type="text" id="input-item" placeholder="項目 (例如：餐費)" class="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" required>
+                    <input type="number" id="input-amount" placeholder="金額" class="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-lg font-medium" required inputmode="decimal">
+                    <input type="date" id="input-date" class="w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" required>
                 </div>
-                <button type="submit" id="add-record-submit-btn" class="w-full mt-6 py-4 rounded-xl btn-primary text-white font-bold text-lg shadow-lg active:scale-95 transition-all">確認新增</button>
-                <div id="add-error-message" class="text-red-500 text-center mt-3 text-sm hidden"></div>
+                <button type="submit" class="w-full bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg mt-4">新增記錄</button>
             </form>
         </div>
     </div>
 
-    <!-- 模態框：匯出文字 -->
-    <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay transition-opacity duration-300 p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
+    <!-- 匯出預覽 Modal -->
+    <div id="modal-export" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-slide-up flex flex-col max-h-[80vh]">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-gray-800">匯出記錄</h2>
-                <button onclick="closeExportModal()" class="text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                <h2 class="text-xl font-bold text-gray-800">匯出預覽</h2>
+                <button onclick="app.closeModal('modal-export')" class="p-2 bg-gray-100 rounded-full"><i data-lucide="x" class="w-5 h-5 text-gray-600"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100 text-sm font-mono text-gray-600 whitespace-pre-wrap leading-relaxed no-scrollbar" id="export-preview-content"></div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="app.copyExportText()" class="bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>複製文字</span>
                 </button>
-            </div>
-            <textarea id="export-textarea" readonly class="w-full h-48 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 focus:outline-none mb-4 leading-relaxed"></textarea>
-            <div class="flex space-x-2">
-                <button onclick="copyExportText()" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 flex items-center justify-center active:scale-95 transition">
-                    複製文字
-                </button>
-                <button onclick="downloadExportFile()" class="flex-1 py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center active:scale-95 transition">
-                    下載檔案
-                </button>
-            </div>
-            <p id="copy-feedback" class="text-center text-teal-600 text-xs mt-3 opacity-0 transition-opacity font-medium">內容已成功複製！</p>
-        </div>
-    </div>
-
-    <!-- 模態框：清除已結算 -->
-    <div id="delete-modal" class="fixed inset-0 z-50 flex items-end justify-center hidden modal-overlay transition-opacity duration-300">
-        <div class="bg-white rounded-t-3xl w-full max-w-md transform transition-transform duration-300 translate-y-full shadow-2xl p-6 pb-12">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-gray-800">清除已結算項目</h2>
-                <button onclick="closeDeleteModal()" class="text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            <div id="delete-records-list" class="max-h-60 overflow-y-auto space-y-3 mb-4 scrollbar-hide"></div>
-            <div class="flex items-center justify-between mb-4">
-                <label class="flex items-center text-gray-700 font-semibold cursor-pointer">
-                    <input type="checkbox" id="select-all-delete" onchange="toggleSelectAll(this.checked)" class="h-5 w-5 text-teal-600 rounded border-gray-300">
-                    <span class="ml-2">全選</span>
-                </label>
-                <span id="delete-selected-count" class="text-xs text-gray-500">已選 0 筆</span>
-            </div>
-            <button onclick="handleDeleteSelected()" id="delete-selected-btn" class="w-full py-4 rounded-xl bg-red-500 text-white font-bold shadow-lg disabled:opacity-30 transition-all" disabled>清除選取項目 (0)</button>
-        </div>
-    </div>
-
-    <!-- 模態框：結清 -->
-    <div id="settle-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay transition-opacity duration-300 p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
-            <h2 class="text-xl font-bold mb-4 text-center">結清帳目</h2>
-            <p id="settle-message" class="text-sm text-gray-600 mb-6 text-center px-2"></p>
-            <div class="flex space-x-3">
-                <button onclick="closeSettleModal()" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold">取消</button>
-                <button onclick="handleSettleAll()" id="settle-all-confirm-btn" class="flex-1 py-3 rounded-xl btn-primary text-white font-semibold">確認結清</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 模態框：資訊 -->
-    <div id="info-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay transition-opacity duration-300 p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm p-6 transform transition-transform duration-300 scale-90 shadow-2xl">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold">App 資訊</h2>
-                <button onclick="toggleInfoModal()"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">關於本工具</p>
-                    <p class="text-sm text-gray-700">筠 & 古 的家庭共同記帳</p>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">我的 ID (筠)</p>
-                    <p id="yun-id-display" class="text-[10px] text-gray-500 break-all bg-gray-50 p-2 rounded-lg"></p>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">夥伴 ID (古)</p>
-                    <p id="gu-id-display" class="text-[10px] text-gray-500 break-all bg-gray-50 p-2 rounded-lg"></p>
-                </div>
+                <button onclick="app.closeModal('modal-export')" class="bg-gray-100 text-gray-600 font-bold py-3 rounded-xl">關閉</button>
             </div>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        const STORAGE_KEY = 'duodebt_static_v1';
+        const state = { transactions: [], payer: 'ME' };
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-family-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        let db, auth, userId = null, allRecords = [];
-        const PARTNER_ID = 'partner_gu_fixed_id';
-        const YUN_NAME = '筠', GU_NAME = '古';
-
-        async function initFirebase() {
-            if (!firebaseConfig.apiKey) return;
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    document.getElementById('yun-id-display').innerText = userId;
-                    document.getElementById('gu-id-display').innerText = PARTNER_ID;
-                    listenForRecords();
-                } else {
-                    if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
-                    else await signInAnonymously(auth);
-                }
-            });
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) state.transactions = JSON.parse(saved);
+            document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+            render();
+            lucide.createIcons();
         }
 
-        function getCollectionRef() {
-            return collection(db, 'artifacts', appId, 'public', 'data', 'family_bills');
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+            render();
         }
 
-        function listenForRecords() {
-            onSnapshot(query(getCollectionRef()), (snapshot) => {
-                allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateUI();
-            });
-        }
-
-        window.handleNewRecord = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('add-record-submit-btn');
-            btn.disabled = true;
-            btn.innerText = "儲存中...";
-            try {
-                const payer = document.getElementById('payer-yun').classList.contains('bg-white') ? 'yun' : 'gu';
-                const amount = parseFloat(document.getElementById('amount').value);
-                await addDoc(getCollectionRef(), {
-                    item: document.getElementById('item').value,
-                    amount: amount,
-                    date: document.getElementById('date').value,
-                    payerId: payer === 'yun' ? userId : PARTNER_ID,
-                    debtorId: payer === 'yun' ? PARTNER_ID : userId,
-                    payerName: payer === 'yun' ? YUN_NAME : GU_NAME,
-                    debtorName: payer === 'yun' ? GU_NAME : YUN_NAME,
-                    splitAmount: amount / 2,
-                    isSettled: false,
-                    createdAt: Timestamp.now()
-                });
-                closeAddModal();
-                e.target.reset();
-                document.getElementById('date').valueAsDate = new Date();
-            } catch (err) { 
-                console.error(err);
-                document.getElementById('add-error-message').innerText = "儲存失敗，請檢查網路連線";
-                document.getElementById('add-error-message').classList.remove('hidden');
-            } finally { 
-                btn.disabled = false; 
-                btn.innerText = "確認新增";
-            }
-        };
-
-        window.handleSettleAll = async () => {
-            const batch = writeBatch(db);
-            allRecords.filter(r => !r.isSettled).forEach(r => {
-                batch.update(doc(db, 'artifacts', appId, 'public', 'data', 'family_bills', r.id), { isSettled: true, settledAt: Timestamp.now() });
-            });
-            await batch.commit();
-            closeSettleModal();
-        };
-
-        window.handleDeleteSelected = async () => {
-            const batch = writeBatch(db);
-            const ids = Array.from(document.querySelectorAll('#delete-records-list input:checked')).map(cb => cb.value);
-            ids.forEach(id => batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'family_bills', id)));
-            await batch.commit();
-            closeDeleteModal();
-        };
-
-        // --- UI &佈局優化邏輯 ---
-
-        function updateUI() {
-            if (!userId) return;
-            const unsettled = allRecords.filter(r => !r.isSettled);
+        function render() {
             let net = 0;
-            unsettled.forEach(r => net += (r.payerId === userId ? r.splitAmount : -r.splitAmount));
-            
-            const balEl = document.getElementById('current-balance');
-            const infoEl = document.getElementById('settlement-info');
-            const abs = Math.abs(net).toFixed(2);
-            
-            balEl.innerText = `${net >= 0 ? '+' : '-'}$${abs}`;
-            balEl.className = `text-4xl font-extrabold transition-all duration-300 ${net > 0.01 ? 'text-green-400' : net < -0.01 ? 'text-red-400' : 'text-white'}`;
-            infoEl.innerHTML = net > 0.01 ? `古 應付 筠 $${abs}` : net < -0.01 ? `筠 應付 古 $${abs}` : '已全部結清';
-            document.getElementById('settle-btn').disabled = unsettled.length === 0;
+            let hasSettled = false;
+            const sorted = [...state.transactions].sort((a, b) => b.createdAt - a.createdAt);
 
-            const container = document.getElementById('records-container');
-            const ph = document.getElementById('no-records-placeholder');
-            container.innerHTML = '';
-            if (allRecords.length === 0) container.appendChild(ph);
-            else {
-                allRecords.sort((a,b) => b.createdAt.toDate() - a.createdAt.toDate()).forEach(r => {
-                    const el = document.createElement('div');
-                    el.className = 'bg-white p-4 rounded-xl shadow-sm flex justify-between items-center space-x-2';
-                    el.innerHTML = `
-                        <div class="min-w-0 flex-1">
-                            <p class="font-bold text-gray-800 break-all leading-tight">${r.item} <span class="text-[10px] text-gray-400 font-normal">($${r.amount})</span></p>
-                            <p class="text-[11px] text-gray-400 mt-1">${r.date} · ${r.payerName}付款</p>
-                        </div>
-                        <div class="text-right flex-shrink-0">
-                            <p class="font-extrabold ${r.payerId === userId ? 'text-teal-600' : 'text-rose-500'}">$${r.splitAmount.toFixed(2)}</p>
-                            <p class="text-[9px] font-bold ${r.isSettled ? 'text-green-500 bg-green-50' : 'text-amber-500 bg-amber-50'} px-1.5 py-0.5 rounded-full inline-block mt-0.5">${r.isSettled ? '已結清' : '待結算'}</p>
-                        </div>
-                    `;
-                    container.appendChild(el);
-                });
+            sorted.forEach(t => {
+                if (t.isSettled) { hasSettled = true; return; }
+                if (t.payer === 'ME') net += t.amount; 
+                else net -= t.amount; 
+            });
+
+            const card = document.getElementById('balance-card');
+            const statusText = document.getElementById('balance-status-text');
+            const amountText = document.getElementById('balance-amount');
+            const settleBtnContainer = document.getElementById('settle-btn-container');
+
+            amountText.innerText = `$${Math.abs(net).toLocaleString()}`;
+            card.className = "relative overflow-hidden rounded-3xl p-6 text-white shadow-lg transition-all duration-300";
+            
+            if (net === 0) {
+                statusText.innerText = "目前狀態";
+                card.classList.add('bg-gradient-to-br', 'from-gray-500', 'to-slate-600');
+                settleBtnContainer.innerHTML = `<div class="flex items-center gap-1 text-white/80 text-sm font-medium px-2 py-2"><i data-lucide="check-circle" class="w-4 h-4"></i> 已全部結清</div>`;
+            } else {
+                statusText.innerText = net > 0 ? "待收款" : "待付款";
+                if (net > 0) card.classList.add('bg-gradient-to-br', 'from-emerald-500', 'to-teal-600');
+                else card.classList.add('bg-gradient-to-br', 'from-rose-500', 'to-pink-600');
+
+                settleBtnContainer.innerHTML = `
+                    <button onclick="app.settleAll()" class="flex items-center gap-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> 結算全部
+                    </button>`;
             }
-            document.getElementById('record-count').innerText = `${allRecords.length} 筆`;
+
+            const listEl = document.getElementById('transaction-list');
+            document.getElementById('tx-count').innerText = `${state.transactions.length} 筆`;
+
+            if (state.transactions.length === 0) {
+                listEl.innerHTML = `<div class="flex flex-col items-center justify-center h-48 text-gray-400"><i data-lucide="calendar" class="w-12 h-12 mb-2 opacity-20"></i><p>目前沒有記錄</p></div>`;
+            } else {
+                listEl.innerHTML = sorted.map(t => {
+                    const isMe = t.payer === 'ME';
+                    const isSettled = t.isSettled;
+                    let amountColor = isSettled ? 'text-gray-400 line-through decoration-2' : (isMe ? 'text-emerald-600' : 'text-rose-600');
+                    let iconBg = isSettled ? 'bg-gray-200 text-gray-400' : (isMe ? 'bg-indigo-50 text-indigo-600' : 'bg-orange-50 text-orange-600');
+                    let prefix = isSettled ? '' : (isMe ? '+' : '-');
+
+                    return `
+                    <div class="${isSettled ? 'bg-gray-50 border-gray-100' : 'bg-white border-gray-100'} rounded-2xl p-4 shadow-sm border flex justify-between items-center transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full ${iconBg} flex-shrink-0 w-9 h-9 flex items-center justify-center">
+                                <span class="text-xs font-bold">${isMe ? '筠' : '古'}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-semibold truncate ${isSettled ? 'text-gray-500' : 'text-gray-800'}">${t.item}</h3>
+                                <p class="text-xs text-gray-400">${t.date}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 pl-2">
+                            <div class="text-right flex-shrink-0 ${amountColor}">
+                                <div class="font-bold text-lg">${prefix}$${t.amount.toLocaleString()}</div>
+                                <p class="text-[10px] uppercase tracking-wider font-semibold opacity-60">${isSettled ? '已結清' : (isMe ? '先墊' : '代墊')}</p>
+                            </div>
+                            <button onclick="app.deleteTx('${t.id}')" class="text-gray-300 hover:text-red-500 p-2 -mr-2 rounded-full transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            const clearBtn = document.getElementById('btn-clear-settled');
+            if (hasSettled) {
+                clearBtn.disabled = false;
+                clearBtn.className = "flex items-center justify-center p-3 rounded-2xl transition-all w-12 h-12 flex-shrink-0 bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500";
+            } else {
+                clearBtn.disabled = true;
+                clearBtn.className = "flex items-center justify-center p-3 rounded-2xl transition-all w-12 h-12 flex-shrink-0 bg-gray-50 text-gray-300 cursor-not-allowed";
+            }
+            lucide.createIcons();
         }
 
-        window.openExportModal = () => {
-            const sorted = [...allRecords].sort((a,b) => new Date(a.date) - new Date(b.date));
-            let total = 0;
-            const lines = sorted.map(r => {
-                total += r.amount;
-                return `${r.date} ${r.item} ${r.amount}`;
-            });
-            lines.push(`合計 ${total}元`);
-            document.getElementById('export-textarea').value = lines.join('\n');
-            showModal('export-modal');
-        };
+        window.app = {
+            openManualModal: () => document.getElementById('modal-manual').classList.remove('hidden'),
+            closeModal: (id) => document.getElementById(id).classList.add('hidden'),
+            setPayer: (payer) => {
+                state.payer = payer;
+                const btnMe = document.getElementById('btn-payer-me'), btnFriend = document.getElementById('btn-payer-friend');
+                if (payer === 'ME') {
+                    btnMe.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold border-indigo-500 bg-indigo-50 text-indigo-700";
+                    btnFriend.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold border-gray-100 text-gray-400";
+                } else {
+                    btnMe.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold border-gray-100 text-gray-400";
+                    btnFriend.className = "flex-1 py-2 px-3 rounded-xl border-2 text-sm font-bold border-orange-500 bg-orange-50 text-orange-700";
+                }
+            },
+            handleAddSubmit: (e) => {
+                e.preventDefault();
+                const item = document.getElementById('input-item').value, amount = parseFloat(document.getElementById('input-amount').value), date = document.getElementById('input-date').value;
+                if (!item || isNaN(amount)) return;
+                state.transactions.unshift({ id: crypto.randomUUID(), date, item, amount, payer: state.payer, createdAt: Date.now(), isSettled: false });
+                save();
+                document.getElementById('input-item').value = '';
+                document.getElementById('input-amount').value = '';
+                app.setPayer('ME');
+                app.closeModal('modal-manual');
+            },
+            deleteTx: (id) => {
+                if(confirm('確定要刪除這筆記錄嗎？')) { state.transactions = state.transactions.filter(t => t.id !== id); save(); }
+            },
+            settleAll: () => {
+                const unsettledCount = state.transactions.filter(t => !t.isSettled).length;
+                if (unsettledCount === 0) return;
+                if(confirm(`確定要結清？結清後餘額將歸零。`)) {
+                    state.transactions = state.transactions.map(t => ({ ...t, isSettled: true }));
+                    save();
+                }
+            },
+            openClearSettledModal: () => {
+                if(confirm('確定要永久刪除所有「已結算」的紀錄嗎？')) { state.transactions = state.transactions.filter(t => !t.isSettled); save(); }
+            },
+            prepareExport: () => {
+                const unsettled = state.transactions.filter(t => !t.isSettled);
+                if (unsettled.length === 0) { alert('目前沒有未結清紀錄可以匯出。'); return; }
+                
+                let text = "", net = 0;
+                [...unsettled].reverse().forEach(t => {
+                    const dateParts = t.date.split('-');
+                    const displayDate = dateParts.length === 3 ? `${dateParts[1]}-${dateParts[2]}` : t.date;
+                    const prefix = t.payer === 'ME' ? "+" : "-";
+                    text += `${displayDate} ${t.item} ${prefix}$${t.amount.toLocaleString()}\n`;
+                    net += (t.payer === 'ME' ? t.amount : -t.amount);
+                });
+                
+                const label = net > 0 ? '待收款' : '待付款';
+                const netPrefix = net > 0 ? "+" : (net < 0 ? "-" : "");
+                text += `\n合計：${netPrefix}$${Math.abs(net).toLocaleString()} ${label}`;
 
-        window.copyExportText = () => {
-            const text = document.getElementById('export-textarea').value;
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            const feedback = document.getElementById('copy-feedback');
-            feedback.style.opacity = '1';
-            setTimeout(() => feedback.style.opacity = '0', 2000);
-        };
-
-        window.downloadExportFile = () => {
-            const text = document.getElementById('export-textarea').value;
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `家庭記帳匯出_${new Date().toISOString().slice(0,10)}.txt`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        };
-
-        window.selectPayer = (p) => {
-            const y = document.getElementById('payer-yun'), g = document.getElementById('payer-gu');
-            if (p === 'yun') { 
-                y.className = 'flex-1 py-2.5 rounded-xl bg-white shadow-sm text-gray-800 font-semibold transition-all'; 
-                g.className = 'flex-1 py-2.5 text-gray-400 font-semibold transition-all'; 
-            } else { 
-                g.className = 'flex-1 py-2.5 rounded-xl bg-white shadow-sm text-gray-800 font-semibold transition-all'; 
-                y.className = 'flex-1 py-2.5 text-gray-400 font-semibold transition-all'; 
+                document.getElementById('export-preview-content').innerText = text;
+                document.getElementById('modal-export').classList.remove('hidden');
+                lucide.createIcons();
+            },
+            copyExportText: () => {
+                const text = document.getElementById('export-preview-content').innerText;
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try { document.execCommand('copy'); showToast('文字已複製！'); } catch (err) { alert('無法複製'); }
+                document.body.removeChild(textarea);
             }
         };
 
-        const showModal = (id) => {
-            const m = document.getElementById(id); m.classList.remove('hidden');
-            setTimeout(() => { 
-                const content = m.querySelector('div:last-child');
-                content.classList.remove('translate-y-full', 'scale-90'); 
-                content.classList.add('translate-y-0', 'scale-100');
-            }, 10);
-        };
-        const hideModal = (id) => {
-            const m = document.getElementById(id); 
-            const content = m.querySelector('div:last-child');
-            content.classList.add('translate-y-full', 'scale-90');
-            content.classList.remove('translate-y-0', 'scale-100');
-            setTimeout(() => m.classList.add('hidden'), 300);
-        };
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg z-[100] animate-fade-in text-sm font-bold";
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
 
-        window.openAddModal = () => { selectPayer('yun'); showModal('add-modal'); };
-        window.closeAddModal = () => hideModal('add-modal');
-        window.closeExportModal = () => hideModal('export-modal');
-        window.openSettleModal = () => {
-            const unsettled = allRecords.filter(r => !r.isSettled);
-            let net = 0; unsettled.forEach(r => net += (r.payerId === userId ? r.splitAmount : -r.splitAmount));
-            document.getElementById('settle-message').innerText = `結算後將標記 ${unsettled.length} 筆項目為已結清。目前淨額為 $${Math.abs(net).toFixed(2)}`;
-            showModal('settle-modal');
-        };
-        window.closeSettleModal = () => hideModal('settle-modal');
-        window.toggleInfoModal = () => { const m = document.getElementById('info-modal'); m.classList.contains('hidden') ? showModal('info-modal') : hideModal('info-modal'); };
-        window.openDeleteModal = () => {
-            const list = document.getElementById('delete-records-list'); list.innerHTML = '';
-            const settled = allRecords.filter(r => r.isSettled);
-            if (settled.length === 0) list.innerHTML = '<p class="text-center text-gray-400 p-10 text-sm">目前沒有已結清項目</p>';
-            else settled.forEach(r => {
-                const d = document.createElement('div'); d.className = 'flex items-center space-x-3 bg-gray-50 p-3 rounded-xl border border-gray-100';
-                d.innerHTML = `
-                    <input type="checkbox" value="${r.id}" onchange="updateDelCount()" class="h-5 w-5 text-red-500 rounded border-gray-300">
-                    <div class="text-xs flex-grow min-w-0">
-                        <p class="font-bold text-gray-700 truncate">${r.item}</p>
-                        <p class="text-gray-400 text-[10px] mt-0.5">${r.date}</p>
-                    </div>
-                    <p class="font-bold text-red-500 flex-shrink-0">$${r.splitAmount.toFixed(2)}</p>
-                `;
-                list.appendChild(d);
-            });
-            updateDelCount(); showModal('delete-modal');
-        };
-        window.closeDeleteModal = () => hideModal('delete-modal');
-        window.updateDelCount = () => {
-            const count = document.querySelectorAll('#delete-records-list input:checked').length;
-            document.getElementById('delete-selected-count').innerText = `已選 ${count} 筆`;
-            document.getElementById('delete-selected-btn').innerText = count > 0 ? `確認清除 (${count})` : "清除選取項目 (0)";
-            document.getElementById('delete-selected-btn').disabled = count === 0;
-        };
-        window.toggleSelectAll = (c) => { 
-            document.querySelectorAll('#delete-records-list input[type="checkbox"]').forEach(i => i.checked = c); 
-            updateDelCount(); 
-        };
-
-        document.getElementById('date').valueAsDate = new Date();
-        initFirebase();
+        init();
     </script>
 </body>
 </html>
